@@ -1,20 +1,19 @@
-# Clean Mage-OS (Magento Open Source distribution) on PHP 8.4 + Apache.
+# Clean Mage-OS (Magento Open Source distribution) on nginx + PHP 8.4-FPM.
 # The database install runs as bitploy's before_deploy_command (docker/install.sh);
 # app/etc/env.php and pub/media live in /data so they survive redeploys.
-FROM php:8.4-apache-bookworm
+FROM php:8.4-fpm-bookworm
 
 ADD --chmod=0755 https://github.com/mlocati/docker-php-extension-installer/releases/latest/download/install-php-extensions /usr/local/bin/
-RUN install-php-extensions bcmath gd intl pdo_mysql soap sockets xsl zip opcache ftp
+RUN install-php-extensions bcmath gd intl pdo_mysql soap sockets xsl zip opcache ftp \
+ && apt-get update && apt-get install -y --no-install-recommends nginx \
+ && rm -rf /var/lib/apt/lists/* /etc/nginx/sites-enabled/default
 
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 COPY docker/php.ini /usr/local/etc/php/conf.d/zz-magento.ini
 
-# Apache: unprivileged port 8080, docroot pub/, .htaccess allowed
-RUN a2enmod rewrite headers expires \
- && sed -ri 's/^Listen 80$/Listen 8080/' /etc/apache2/ports.conf \
- && sed -ri 's!<VirtualHost \*:80>!<VirtualHost *:8080>!; s!/var/www/html!/var/www/html/pub!g' /etc/apache2/sites-available/000-default.conf \
- && printf 'ServerName localhost\n<Directory /var/www/html/pub>\n    AllowOverride All\n    Require all granted\n</Directory>\n' > /etc/apache2/conf-enabled/magento.conf \
- && mkdir /data && chown www-data:www-data /data /var/www/html
+# nginx and php-fpm both run unprivileged as www-data (nginx temp files live in /var/lib/nginx)
+RUN mkdir /data && chown www-data:www-data /data /var/www/html \
+ && chown -R www-data:www-data /var/lib/nginx /var/log/nginx
 
 USER www-data
 WORKDIR /var/www/html
@@ -43,6 +42,9 @@ RUN bin/magento module:enable --all \
  && echo ok > pub/bitploy-health.txt
 
 COPY docker/zz-logging.ini /usr/local/etc/php/conf.d/zz-logging.ini
+COPY docker/php-fpm.conf /usr/local/etc/php-fpm.d/zz-magento.conf
+COPY docker/nginx.conf /etc/nginx/nginx.conf
+RUN nginx -t -e stderr && php-fpm -t
 COPY --chmod=0755 docker/install.sh /usr/local/bin/magento-install
 COPY --chmod=0755 docker/start.sh /usr/local/bin/magento-start
 

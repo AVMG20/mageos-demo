@@ -6,12 +6,15 @@ Every push to `main` builds the root `Dockerfile` and deploys the `mageos` app.
 
 ## Layout
 
-- `Dockerfile`: PHP 8.4 + Apache on port 8080. Runs `composer create-project` for Mage-OS, adds the
-  sample data and Hyvä (from `https://mageos.bougierepo.com/`, limited to `hyva-themes/*`), and turns
-  off admin 2FA.
+- `Dockerfile`: nginx + PHP 8.4-FPM on port 8080, both running as `www-data`. Runs
+  `composer create-project` for Mage-OS, adds the sample data and Hyvä (from
+  `https://mageos.bougierepo.com/`, limited to `hyva-themes/*`), and turns off admin 2FA.
+- `docker/nginx.conf`: the server block. It includes Magento's own `nginx.conf.sample` and passes PHP to
+  FPM on `127.0.0.1:9000` (pool settings in `docker/php-fpm.conf`).
 - `docker/install.sh`: bitploy's `before_deploy_command`. It runs `setup:install` on the first deploy
-  and `setup:upgrade` on every later one, then configures Valkey, activates Hyvä and reindexes.
-- `docker/start.sh`: copies `app/etc/env.php` from `/data` and starts Apache.
+  and `setup:upgrade` on every later one, then configures Valkey and activates Hyvä.
+- `docker/start.sh`: copies `app/etc/env.php` from `/data`, reindexes in the background and runs
+  php-fpm and nginx. The container stops when either one exits.
 - `opensearch/`: the private OpenSearch worker (`mageos-opensearch` app). It is deployed separately
   with file uploads, not from this repo.
 
