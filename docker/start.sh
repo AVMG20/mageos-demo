@@ -7,7 +7,8 @@ if [ -f /data/etc/env.php ]; then
   cp /data/etc/env.php app/etc/env.php
   # Reindex in the background once the web server is up; this also refills OpenSearch,
   # which keeps no data across its own restarts.
-  ( sleep 15; bin/magento indexer:reindex > /proc/1/fd/1 2>&1 || true ) &
+  # indexer:reset first clears a "working" state left behind by a reindex that was killed.
+  ( sleep 15; { bin/magento indexer:reset && bin/magento indexer:reindex; } > /proc/1/fd/1 2>&1 || true ) &
 fi
 
 php-fpm -F &
