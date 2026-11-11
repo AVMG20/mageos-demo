@@ -12,7 +12,8 @@ COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 COPY docker/php.ini /usr/local/etc/php/conf.d/zz-magento.ini
 
 # nginx and php-fpm both run unprivileged as www-data (nginx temp files live in /var/lib/nginx)
-RUN mkdir /data && chown www-data:www-data /data /var/www/html \
+RUN rm -rf /var/www/html/* \
+ && mkdir /data && chown www-data:www-data /data /var/www/html \
  && chown -R www-data:www-data /var/lib/nginx /var/log/nginx
 
 USER www-data
