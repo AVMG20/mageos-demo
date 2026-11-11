@@ -80,6 +80,7 @@ if [ -n "$THEME_ID" ]; then
 fi
 
 cp app/etc/env.php /data/etc/env.php
-bin/magento indexer:reindex || true
+# The full reindex runs in the background when the container starts (docker/start.sh):
+# with sample data it does not fit in bitploy's 10-minute before-deploy limit.
 bin/magento cache:flush
 echo "Mage-OS ready"
