@@ -15,6 +15,9 @@ Every push to `main` builds the root `Dockerfile` and deploys the `mageos` app.
   and `setup:upgrade` on every later one, then configures Valkey and activates Hyvä.
 - `docker/start.sh`: copies `app/etc/env.php` from `/data`, reindexes in the background and runs
   php-fpm and nginx. The container stops when either one exits.
+- `scripts/warm-cache.py`: run locally to warm the full page cache. It crawls the storefront from the
+  homepage and requests every cacheable page once (`python3 scripts/warm-cache.py --help`). It needs
+  only the Python standard library.
 - `opensearch/`: the private OpenSearch worker (`mageos-opensearch` app). It is deployed separately
   with file uploads, not from this repo.
 
